@@ -35,7 +35,7 @@
     "node": ">=22.9"
   },
   "scripts": {
-    "test": "node test/smoke.js && node test/reddit-client.test.js && node test/auth-config.test.js && node test/no-legacy-client.test.js",
-    "test:syntax": "node --check node-reddit.js && node --check lib/reddit-client.js && node --check test/smoke.js && node --check test/reddit-client.test.js && node --check test/auth-config.test.js && node --check test/no-legacy-client.test.js"
+    "test": "node test/smoke.js && node test/reddit-client.test.js && node test/reddit-normalize.test.js && node test/auth-config.test.js && node test/separation-of-concerns.test.js && node test/no-legacy-client.test.js",
+    "test:syntax": "node --check node-reddit.js && node --check lib/reddit-client.js && node --check lib/reddit-normalize.js && node --check test/smoke.js && node --check test/reddit-client.test.js && node --check test/reddit-normalize.test.js && node --check test/auth-config.test.js && node --check test/separation-of-concerns.test.js && node --check test/no-legacy-client.test.js"
   }
 }
