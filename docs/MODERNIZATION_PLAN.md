@@ -56,15 +56,15 @@ Modernize the inherited Node-RED Reddit nodes into a dependable, reusable Reddit
 - [ ] Validate Create where required.
 - [ ] Validate Edit/Delete for rollback of our own test content.
 - [ ] Return stable IDs and permalinks after write operations.
-- [ ] Make write failures machine-readable.
+- [x] Make write failures machine-readable.
 
 ## Phase 4 — Reliability
 
-- [ ] Add retry classification for 429, transient 5xx, auth failures, and permanent 4xx.
+- [x] Add retry classification for 429, transient 5xx, auth failures, and permanent 4xx.
 - [ ] Add idempotency guidance for downstream workflows.
-- [ ] Add structured status output suitable for PostgreSQL telemetry.
-- [ ] Add unit tests around error parsing and message normalization.
-- [ ] Add Node-RED runtime integration tests.
+- [x] Add structured transport metadata suitable for external telemetry and persistence.
+- [x] Add unit tests around error parsing and message normalization.
+- [x] Add Node-RED runtime integration tests.
 
 ## Phase 5 — Application integration boundary
 
