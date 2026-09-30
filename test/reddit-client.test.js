@@ -132,6 +132,111 @@ async function testRefreshTokenAndReply() {
   assert.match(String(q.calls[1].init.body), /thing_id=t3_post1/);
 }
 
+
+async function testLegacyPasswordGrant() {
+  const q = queueFetch([
+    {
+      body: {
+        access_token: "legacy-access",
+        token_type: "bearer",
+        expires_in: 3600,
+        scope: "read identity"
+      }
+    },
+    {
+      body: {
+        name: "legacy-user"
+      }
+    }
+  ]);
+
+  const client = new RedditClient({
+    userAgent: "node-red-test/1.0",
+    clientId: "client",
+    clientSecret: "secret",
+    username: "legacy-user",
+    password: "legacy-password",
+    fetchImpl: q.fetchImpl
+  });
+
+  const me = await client.identity();
+
+  assert.equal(me.name, "legacy-user");
+  assert.equal(q.calls.length, 2);
+  assert.equal(q.calls[0].url, "https://www.reddit.com/api/v1/access_token");
+  assert.match(String(q.calls[0].init.body), /grant_type=password/);
+  assert.match(String(q.calls[0].init.body), /username=legacy-user/);
+  assert.match(String(q.calls[0].init.body), /password=legacy-password/);
+  assert.equal(q.calls[1].init.headers.Authorization, "Bearer legacy-access");
+}
+
+async function testInvalidRefreshTokenIsStructuredAndSecretSafe() {
+  const q = queueFetch([
+    {
+      status: 400,
+      body: {
+        error: "invalid_grant"
+      }
+    }
+  ]);
+
+  const secretRefreshToken = "refresh-token-that-must-not-leak";
+  const client = new RedditClient({
+    userAgent: "node-red-test/1.0",
+    clientId: "client",
+    clientSecret: "client-secret-that-must-not-leak",
+    refreshToken: secretRefreshToken,
+    fetchImpl: q.fetchImpl
+  });
+
+  await assert.rejects(
+    () => client.identity(),
+    err => {
+      assert.ok(err instanceof RedditApiError);
+      assert.equal(err.code, "OAUTH_TOKEN_FAILED");
+      assert.equal(err.status, 400);
+      assert.match(err.message, /invalid_grant/);
+
+      const safeProjection = JSON.stringify({
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        status: err.status,
+        apiErrors: err.apiErrors,
+        meta: err.meta
+      });
+      assert.equal(safeProjection.includes(secretRefreshToken), false);
+      assert.equal(safeProjection.includes("client-secret-that-must-not-leak"), false);
+      return true;
+    }
+  );
+}
+
+async function testInvalidAccessTokenIsStructured() {
+  const q = queueFetch([
+    {
+      status: 401,
+      body: {
+        message: "Unauthorized",
+        error: 401
+      }
+    }
+  ]);
+
+  const client = new RedditClient({
+    userAgent: "node-red-test/1.0",
+    accessToken: "expired-token",
+    fetchImpl: q.fetchImpl
+  });
+
+  await assert.rejects(
+    () => client.identity(),
+    err => err instanceof RedditApiError &&
+      err.code === "AUTH_FAILED" &&
+      err.status === 401
+  );
+}
+
 async function testWriteEndpoints() {
   const q = queueFetch([
     { body: { json: { errors: [], data: { name: "t3_newpost", url: "https://reddit.test/x" } } } },
@@ -205,6 +310,9 @@ async function main() {
   await testFullnames();
   await testSearchWithAccessToken();
   await testRefreshTokenAndReply();
+  await testLegacyPasswordGrant();
+  await testInvalidRefreshTokenIsStructuredAndSecretSafe();
+  await testInvalidAccessTokenIsStructured();
   await testWriteEndpoints();
   await testApiError();
   console.log("Native Reddit client tests passed.");
