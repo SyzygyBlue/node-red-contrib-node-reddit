@@ -26,15 +26,15 @@ Modernize the inherited Node-RED Reddit nodes into a dependable Reddit adapter f
 - [x] Add CI baseline.
 - [x] Add module registration smoke test.
 - [x] Define live acceptance tests.
-- [ ] Run CI on Node 22 and 24.
-- [ ] Capture dependency audit results.
+- [x] Run CI on Node 22 and 24.
+- [x] Capture dependency audit results.
 
 ## Phase 1 — Authentication and client layer
 
 - [ ] Make OAuth refresh-token authentication the primary supported mode.
 - [ ] Deprecate username/password authentication in the editor.
-- [ ] Evaluate replacement of deprecated `snoowrap`.
-- [ ] If retained temporarily, isolate `snoowrap` behind a client adapter.
+- [x] Evaluate replacement of deprecated `snoowrap`.
+- [x] Replace `snoowrap`/`snoostorm-es6` completely with the native fetch client.
 - [ ] Ensure credentials never appear in normal Node-RED messages or logs.
 - [ ] Add authentication failure tests.
 
