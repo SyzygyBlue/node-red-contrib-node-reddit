@@ -35,19 +35,60 @@ module.exports = function(RED) {
     });
   }
 
+  function authConfigError(message) {
+    const err = new Error(message);
+    err.code = "AUTH_CONFIG";
+    return err;
+  }
+
   function clientOptions(n) {
     const config = RED.nodes.getNode(n.reddit);
-    if (!config) throw new Error("Reddit credentials configuration is missing.");
+    if (!config) throw authConfigError("Reddit credentials configuration is missing.");
+
     const credentials = config.credentials || {};
-    return {
-      userAgent: config.user_agent,
-      clientId: credentials.client_id,
-      clientSecret: credentials.client_secret,
-      refreshToken: config.auth_type === "refresh_token" ? credentials.refresh_token : undefined,
-      accessToken: config.auth_type === "access_token" ? credentials.access_token : undefined,
-      username: config.auth_type === "username_password" ? config.username : undefined,
-      password: config.auth_type === "username_password" ? credentials.password : undefined
-    };
+    const authType = config.auth_type || (config.username ? "username_password" : "refresh_token");
+    const userAgent = config.user_agent;
+
+    if (!userAgent) {
+      throw authConfigError("A descriptive Reddit user agent is required.");
+    }
+
+    if (authType === "refresh_token") {
+      if (!credentials.client_id || !credentials.client_secret || !credentials.refresh_token) {
+        throw authConfigError("Refresh-token OAuth requires client ID, client secret, and refresh token.");
+      }
+      return {
+        userAgent,
+        clientId: credentials.client_id,
+        clientSecret: credentials.client_secret,
+        refreshToken: credentials.refresh_token
+      };
+    }
+
+    if (authType === "access_token") {
+      if (!credentials.access_token) {
+        throw authConfigError("Access-token authentication requires an access token.");
+      }
+      return {
+        userAgent,
+        accessToken: credentials.access_token
+      };
+    }
+
+    if (authType === "username_password") {
+      if (!credentials.client_id || !credentials.client_secret || !config.username || !credentials.password) {
+        throw authConfigError("Legacy script-app authentication requires client ID, client secret, username, and password.");
+      }
+      return {
+        userAgent,
+        clientId: credentials.client_id,
+        clientSecret: credentials.client_secret,
+        username: config.username,
+        password: credentials.password
+      };
+    }
+
+    throw authConfigError(`Unsupported Reddit authentication mode: ${authType}`);
   }
 
   function createClient(n) {
@@ -56,6 +97,23 @@ module.exports = function(RED) {
 
   function reportError(node, msg, err) {
     const message = err && err.message ? err.message : String(err);
+    const errorMeta = {
+      code: err && err.code ? err.code : "REDDIT_ERROR"
+    };
+
+    if (Number.isInteger(err && err.status)) {
+      errorMeta.status = err.status;
+    }
+    if (Array.isArray(err && err.apiErrors) && err.apiErrors.length) {
+      errorMeta.apiErrors = err.apiErrors;
+    }
+    if (err && err.meta && err.meta.rateLimit) {
+      errorMeta.rateLimit = err.meta.rateLimit;
+    }
+
+    msg.reddit = msg.reddit || {};
+    msg.reddit.error = errorMeta;
+
     node.status({ fill: "red", shape: "dot", text: "error" });
     node.error(message, msg);
   }
@@ -64,7 +122,7 @@ module.exports = function(RED) {
     RED.nodes.createNode(this, n);
     this.username = n.username;
     this.user_agent = n.user_agent;
-    this.auth_type = n.auth_type;
+    this.auth_type = n.auth_type || (n.username ? "username_password" : "refresh_token");
     this.name = n.name;
   }
 
