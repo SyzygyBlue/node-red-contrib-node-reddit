@@ -41,13 +41,13 @@ Modernize the inherited Node-RED Reddit nodes into a dependable, reusable Reddit
 
 ## Phase 2 — Read result normalization
 
-- [ ] Define a stable schema for submissions, comments, and messages.
-- [ ] Normalize Search and Get results into stable message fields.
-- [ ] Surface IDs/fullnames, subreddit, author, timestamps, permalink, title/body, and raw payload where applicable.
-- [ ] Keep pagination/limit controls explicit and caller-controlled.
-- [ ] Ensure Search executes only caller-supplied query/subreddit/sort/time parameters.
-- [ ] Ensure empty result sets return cleanly.
-- [ ] Verify no query generation, discovery, classification, scoring, or application-specific logic exists in the adapter.
+- [x] Define a stable schema for submissions, comments, and messages.
+- [x] Normalize Search and Get results into stable message fields.
+- [x] Surface IDs/fullnames, subreddit, author, timestamps, permalink, title/body, and raw payload where applicable.
+- [x] Keep pagination/limit controls explicit and caller-controlled.
+- [x] Ensure Search executes only caller-supplied query/subreddit/sort/time parameters.
+- [x] Ensure empty result sets return cleanly.
+- [x] Verify no query generation, discovery, classification, scoring, or application-specific logic exists in the adapter.
 
 ## Phase 3 — Deployment actions
 
