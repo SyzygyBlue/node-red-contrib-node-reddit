@@ -63,7 +63,16 @@ Search, Get, inbox, listing, and Stream-compatible read results use a stable app
 
 See [docs/NORMALIZED_READ_SCHEMA.md](docs/NORMALIZED_READ_SCHEMA.md) for the full contract and schema-versioning rules.
 
+## Transport metadata
+
+Successful operations expose HTTP/rate-limit metadata at `msg.reddit.response`. Input-triggered failures expose sanitized classification at `msg.reddit.error` and remain compatible with standard Node-RED Catch nodes.
+
+The adapter reports whether a transport failure is technically retryable and surfaces Reddit/HTTP retry delays when available, but it does not perform automatic retries or choose workflow policy.
+
+See [docs/TRANSPORT_METADATA.md](docs/TRANSPORT_METADATA.md) for the stable metadata contract.
+
 ## Adapter boundary
+
 
 
 This package is responsible for Reddit mechanics only: authentication, execution of caller-supplied operations, normalization of Reddit objects, writes explicitly requested by the caller, and provider metadata such as IDs, rate limits, and errors.
