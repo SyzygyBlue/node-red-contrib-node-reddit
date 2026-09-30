@@ -57,7 +57,14 @@ The inherited package provides:
 
 For inherited behavior details, see the [upstream wiki](https://github.com/jcostello93/node-red-contrib-node-reddit/wiki).
 
+## Normalized read results
+
+Search, Get, inbox, listing, and Stream-compatible read results use a stable application-neutral schema with common Reddit fields plus the original provider object under `raw`.
+
+See [docs/NORMALIZED_READ_SCHEMA.md](docs/NORMALIZED_READ_SCHEMA.md) for the full contract and schema-versioning rules.
+
 ## Adapter boundary
+
 
 This package is responsible for Reddit mechanics only: authentication, execution of caller-supplied operations, normalization of Reddit objects, writes explicitly requested by the caller, and provider metadata such as IDs, rate limits, and errors.
 
