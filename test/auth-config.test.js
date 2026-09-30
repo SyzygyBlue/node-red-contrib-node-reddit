@@ -46,8 +46,8 @@ for (const id of [
 
 assert.match(
   runtime,
-  /msg\.reddit\.error\s*=\s*errorMeta/,
-  "Runtime must expose sanitized machine-readable Reddit error metadata."
+  /msg\.reddit\.error\s*=\s*buildErrorMeta\(err\)/,
+  "Runtime must expose sanitized machine-readable Reddit error metadata through buildErrorMeta()."
 );
 
 for (const secretName of [
