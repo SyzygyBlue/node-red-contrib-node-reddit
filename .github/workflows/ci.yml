@@ -44,7 +44,27 @@ jobs:
       - name: Dependency audit baseline
         run: npm audit --omit=dev || true
 
-      - name: Node-RED 5 runtime availability
+      - name: Node-RED 5 runtime load smoke
         run: |
           npm install --no-save --package-lock=false "node-red@^5"
           npx node-red --version
+
+          rm -rf /tmp/node-red-user
+          mkdir -p /tmp/node-red-user/node_modules
+          ln -s "$GITHUB_WORKSPACE" /tmp/node-red-user/node_modules/node-red-contrib-node-reddit
+
+          npx node-red --userDir /tmp/node-red-user --port 1881 --safe > /tmp/node-red.log 2>&1 &
+          NODE_RED_PID=$!
+          trap 'kill "$NODE_RED_PID" 2>/dev/null || true' EXIT
+
+          for i in {1..30}; do
+            if curl -fsS -H "Accept: application/json" http://127.0.0.1:1881/nodes > /tmp/nodes.json; then
+              break
+            fi
+            sleep 0.5
+          done
+
+          cat /tmp/node-red.log
+          test -s /tmp/nodes.json
+          grep -q '"name":"node-red-contrib-node-reddit"' /tmp/nodes.json
+          grep -q '"reddit-credentials"' /tmp/nodes.json
