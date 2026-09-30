@@ -12,6 +12,19 @@
 
 Interact with Reddit using [Node-RED](https://nodered.org).
 
+
+## Authentication
+
+The maintained fork supports three OAuth modes:
+
+- **OAuth Refresh Token (Recommended)** — default for persistent Node-RED deployments.
+- **Existing Access Token (Advanced)** — useful for testing or external token-management systems.
+- **Legacy Script App (Username/Password)** — retained for compatibility with existing Reddit script-app deployments.
+
+All secrets are registered with Node-RED's credential system. The connector does not intentionally emit passwords, client secrets, refresh tokens, or access tokens into normal messages.
+
+See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for configuration, security guidance, and machine-readable authentication error codes.
+
 ## Modernization goals
 
 See [docs/MODERNIZATION_PLAN.md](docs/MODERNIZATION_PLAN.md) and [docs/ACCEPTANCE_TESTS.md](docs/ACCEPTANCE_TESTS.md).
