@@ -76,12 +76,138 @@ async function testSearchWithAccessToken() {
   });
 
   assert.equal(results.length, 1);
-  assert.equal(results[0].name, "t3_post1");
+  assert.equal(results[0].fullname, "t3_post1");
+  assert.equal(results[0].kind, "submission");
+  assert.equal(results[0].title, "smart protagonist");
+  assert.equal(results[0].raw.name, "t3_post1");
   assert.match(q.calls[0].url, /oauth\.reddit\.com\/r\/ProgressionFantasy\/search/);
   assert.match(q.calls[0].url, /q=smart\+protagonist/);
   assert.match(q.calls[0].url, /restrict_sr=true/);
   assert.equal(q.calls[0].init.headers.Authorization, "Bearer token");
   assert.equal(client.lastResponseMeta.rateLimit.remaining, 99);
+}
+
+
+async function testSearchUsesOnlyCallerSuppliedParametersAndHandlesEmptyResults() {
+  const sentinelQuery = "EXACT caller query + punctuation";
+  const q = queueFetch([
+    {
+      body: {
+        data: {
+          after: null,
+          children: []
+        }
+      }
+    }
+  ]);
+
+  const client = new RedditClient({
+    userAgent: "node-red-test/1.0",
+    accessToken: "token",
+    fetchImpl: q.fetchImpl
+  });
+
+  const results = await client.search({
+    subreddit: "CallerChosenSub",
+    query: sentinelQuery,
+    sort: "new",
+    time: "month",
+    limit: 7
+  });
+
+  assert.deepEqual(results, []);
+
+  const url = new URL(q.calls[0].url);
+  assert.equal(url.pathname, "/r/CallerChosenSub/search");
+  assert.equal(url.searchParams.get("q"), sentinelQuery);
+  assert.equal(url.searchParams.get("sort"), "new");
+  assert.equal(url.searchParams.get("t"), "month");
+  assert.equal(url.searchParams.get("limit"), "7");
+  assert.equal(url.searchParams.get("restrict_sr"), "true");
+}
+
+async function testGetThingReturnsNormalizedSubmission() {
+  const q = queueFetch([
+    {
+      body: {
+        data: {
+          children: [
+            {
+              kind: "t3",
+              data: {
+                id: "post9",
+                name: "t3_post9",
+                subreddit: "ExampleSub",
+                author: "dana",
+                created_utc: 1790772100,
+                permalink: "/r/ExampleSub/comments/post9/example/",
+                title: "Example",
+                selftext: "Body"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]);
+
+  const client = new RedditClient({
+    userAgent: "node-red-test/1.0",
+    accessToken: "token",
+    fetchImpl: q.fetchImpl
+  });
+
+  const item = await client.getThing("submission", "post9");
+
+  assert.equal(item.provider, "reddit");
+  assert.equal(item.kind, "submission");
+  assert.equal(item.id, "post9");
+  assert.equal(item.fullname, "t3_post9");
+  assert.equal(item.subreddit, "ExampleSub");
+  assert.equal(item.author, "dana");
+  assert.equal(item.title, "Example");
+  assert.equal(item.body, "Body");
+  assert.equal(item.raw.name, "t3_post9");
+}
+
+async function testInboxReturnsNormalizedMessage() {
+  const q = queueFetch([
+    {
+      body: {
+        data: {
+          after: null,
+          children: [
+            {
+              kind: "t4",
+              data: {
+                id: "m1",
+                name: "t4_m1",
+                author: "eve",
+                created_utc: 1790772200,
+                subject: "Subject",
+                body: "Message body",
+                context: "/message/messages/m1"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]);
+
+  const client = new RedditClient({
+    userAgent: "node-red-test/1.0",
+    accessToken: "token",
+    fetchImpl: q.fetchImpl
+  });
+
+  const items = await client.inbox({ limit: 5 });
+
+  assert.equal(items.length, 1);
+  assert.equal(items[0].kind, "message");
+  assert.equal(items[0].fullname, "t4_m1");
+  assert.equal(items[0].subject, "Subject");
+  assert.equal(items[0].body, "Message body");
 }
 
 async function testRefreshTokenAndReply() {
@@ -309,6 +435,9 @@ async function testApiError() {
 async function main() {
   await testFullnames();
   await testSearchWithAccessToken();
+  await testSearchUsesOnlyCallerSuppliedParametersAndHandlesEmptyResults();
+  await testGetThingReturnsNormalizedSubmission();
+  await testInboxReturnsNormalizedMessage();
   await testRefreshTokenAndReply();
   await testLegacyPasswordGrant();
   await testInvalidRefreshTokenIsStructuredAndSecretSafe();
