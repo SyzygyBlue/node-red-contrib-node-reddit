@@ -2,16 +2,17 @@
 
 ## Purpose
 
-Modernize the inherited Node-RED Reddit nodes into a dependable Reddit adapter for the Ocular Warlock marketing CI/CD pipeline while preserving upstream provenance.
+Modernize the inherited Node-RED Reddit nodes into a dependable, reusable Reddit transport/adapter while preserving upstream provenance. The Ocular Warlock marketing pipeline is an initial consumer, not part of the adapter's domain logic.
 
 ## Principles
 
 1. Preserve `master` as the upstream baseline until a modernized release is ready.
-2. Use OAuth; do not rely on username/password authentication.
-3. Prefer deterministic polling/search plus downstream deduplication over the inherited streaming implementation.
-4. Expose errors and Reddit rate-limit state as structured message metadata.
-5. Keep platform-specific mechanics in this adapter; keep marketing scoring/canon/policy logic outside it.
-6. Add tests before materially changing behavior.
+2. Use OAuth; prefer refresh-token OAuth while retaining legacy script-app compatibility.
+3. Execute only caller-supplied Reddit operations and parameters; do not invent discovery/search strategy.
+4. Return stable, normalized Reddit objects while preserving provider-specific raw data.
+5. Expose errors and Reddit rate-limit state as structured message metadata.
+6. Keep application classification, scoring, scheduling, policy, deduplication, and business logic outside the adapter.
+7. Add tests before materially changing behavior.
 
 ## Target runtime
 
@@ -32,21 +33,21 @@ Modernize the inherited Node-RED Reddit nodes into a dependable Reddit adapter f
 ## Phase 1 — Authentication and client layer
 
 - [x] Make OAuth refresh-token authentication the primary supported mode while retaining legacy script-app compatibility.
-- [ ] Deprecate username/password authentication in the editor.
+- [x] Label username/password script-app authentication as legacy compatibility in the editor.
 - [x] Evaluate replacement of deprecated `snoowrap`.
 - [x] Replace `snoowrap`/`snoostorm-es6` completely with the native fetch client.
 - [x] Ensure credentials never appear in normal Node-RED messages or logs.
 - [x] Add authentication failure tests.
 
-## Phase 2 — Reader-request ingestion
+## Phase 2 — Read result normalization
 
-- [ ] Validate subreddit search on current Reddit API behavior.
-- [ ] Normalize search results into stable message fields.
-- [ ] Surface post/comment IDs, subreddit, author, timestamps, permalink, title, body, and raw payload.
-- [ ] Add pagination/limit controls.
-- [ ] Surface rate-limit headers/metadata.
-- [ ] Document recommended polling cadence.
-- [ ] Do not rely on Stream for production reader-request discovery.
+- [ ] Define a stable schema for submissions, comments, and messages.
+- [ ] Normalize Search and Get results into stable message fields.
+- [ ] Surface IDs/fullnames, subreddit, author, timestamps, permalink, title/body, and raw payload where applicable.
+- [ ] Keep pagination/limit controls explicit and caller-controlled.
+- [ ] Ensure Search executes only caller-supplied query/subreddit/sort/time parameters.
+- [ ] Ensure empty result sets return cleanly.
+- [ ] Verify no query generation, discovery, classification, scoring, or application-specific logic exists in the adapter.
 
 ## Phase 3 — Deployment actions
 
@@ -65,24 +66,27 @@ Modernize the inherited Node-RED Reddit nodes into a dependable Reddit adapter f
 - [ ] Add unit tests around error parsing and message normalization.
 - [ ] Add Node-RED runtime integration tests.
 
-## Phase 5 — Ocular Warlock integration
+## Phase 5 — Application integration boundary
 
-This repository should remain a Reddit adapter, not contain story-specific marketing intelligence.
+This repository remains a reusable Reddit adapter and must not contain application-specific discovery or decision logic.
 
-The larger Node-RED flow will provide:
+Consuming Node-RED applications provide:
 
-- opportunity qualification;
-- Ocular Warlock canon context;
-- subreddit/promotion policy;
-- duplicate-deployment checking;
+- query/search strategy;
+- scheduling;
+- classification and scoring;
+- business or story context;
+- policy decisions;
+- application-level deduplication;
 - human approval;
-- marketing telemetry.
+- telemetry and persistence.
 
-This adapter will provide:
+This adapter provides:
 
 - authenticated Reddit reads;
+- execution of explicit caller-supplied operations;
 - normalized Reddit objects;
-- approved Reddit writes;
+- caller-supplied Reddit writes;
 - rate-limit/error metadata;
 - stable IDs for observability and rollback.
 
