@@ -399,15 +399,15 @@ module.exports = function(RED) {
 
         let emitted = 0;
         for (const item of [...items].reverse()) {
-          const key = item && (item.name || item.id);
+          const key = item && (item.fullname || item.id);
           if (key && seen.has(key)) continue;
           remember(key);
 
           node.send({ payload: item });
           emitted += 1;
 
-          if (n.kind === "PMs" && n.markedAsRead && item && item.name) {
-            await client.markRead(item.name);
+          if (n.kind === "PMs" && n.markedAsRead && item && item.fullname) {
+            await client.markRead(item.fullname);
           }
         }
 
