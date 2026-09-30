@@ -2,7 +2,7 @@
 
 > **SyzygyBlue maintained fork — modernization in progress**
 >
-> This fork preserves the upstream history from `jcostello93/node-red-contrib-node-reddit` while modernizing it for current Node-RED/Node.js releases and use as the Reddit adapter for the Ocular Warlock marketing automation pipeline.
+> This fork preserves the upstream history from `jcostello93/node-red-contrib-node-reddit` while modernizing it into a reusable Reddit transport/adapter for current Node-RED and Node.js releases.
 >
 > Active development branch: `modernize/reddit-adapter`.
 >
@@ -34,12 +34,12 @@ The initial target is deliberately narrow:
 - current Node-RED 5 compatibility;
 - Node.js 22 and 24 CI coverage;
 - OAuth refresh-token authentication;
-- deterministic search/polling suitable for reader-request discovery;
+- caller-driven Reddit search/read operations with normalized results;
 - reliable get/reply/create operations;
 - explicit rate-limit and error metadata;
 - testable behavior with durable downstream deduplication.
 
-We will preserve upstream functionality where practical, but the Ocular Warlock marketing pipeline is the primary production use case.
+We will preserve upstream functionality where practical while keeping the package application-agnostic. The Ocular Warlock marketing pipeline is one intended consumer.
 
 ## Nodes
 
@@ -57,11 +57,11 @@ The inherited package provides:
 
 For inherited behavior details, see the [upstream wiki](https://github.com/jcostello93/node-red-contrib-node-reddit/wiki).
 
-## Production direction
+## Adapter boundary
 
-For Ocular Warlock reader-request discovery, the preferred pattern will be scheduled search/polling plus durable deduplication rather than the inherited Stream node.
+This package is responsible for Reddit mechanics only: authentication, execution of caller-supplied operations, normalization of Reddit objects, writes explicitly requested by the caller, and provider metadata such as IDs, rate limits, and errors.
 
-The adapter will remain responsible for Reddit mechanics only. Story canon, opportunity scoring, promotion policy, human approval, and campaign telemetry belong in the larger Node-RED marketing flow.
+The package does **not** choose search terms, choose subreddits, schedule discovery, classify results, score relevance, make promotion decisions, or apply application-specific business logic. Those responsibilities belong in the consuming Node-RED flow or application.
 
 ## Example flows
 
