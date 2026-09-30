@@ -1,6 +1,7 @@
 "use strict";
 
 const { RedditClient } = require("./lib/reddit-client");
+const { buildErrorMeta } = require("./lib/reddit-meta");
 
 module.exports = function(RED) {
   function getPath(obj, path) {
@@ -95,24 +96,21 @@ module.exports = function(RED) {
     return new RedditClient(clientOptions(n));
   }
 
-  function reportError(node, msg, err) {
-    const message = err && err.message ? err.message : String(err);
-    const errorMeta = {
-      code: err && err.code ? err.code : "REDDIT_ERROR"
-    };
-
-    if (Number.isInteger(err && err.status)) {
-      errorMeta.status = err.status;
-    }
-    if (Array.isArray(err && err.apiErrors) && err.apiErrors.length) {
-      errorMeta.apiErrors = err.apiErrors;
-    }
-    if (err && err.meta && err.meta.rateLimit) {
-      errorMeta.rateLimit = err.meta.rateLimit;
-    }
+  function attachResponseMeta(msg, client, responseMeta) {
+    const meta = responseMeta || (client && client.lastResponseMeta);
+    if (!meta) return;
 
     msg.reddit = msg.reddit || {};
-    msg.reddit.error = errorMeta;
+    msg.reddit.response = JSON.parse(JSON.stringify(meta));
+    delete msg.reddit.error;
+  }
+
+  function reportError(node, msg, err) {
+    const message = err && err.message ? err.message : String(err);
+
+    msg.reddit = msg.reddit || {};
+    msg.reddit.error = buildErrorMeta(err);
+    delete msg.reddit.response;
 
     node.status({ fill: "red", shape: "dot", text: "error" });
     node.error(message, msg);
@@ -178,6 +176,7 @@ module.exports = function(RED) {
             statusText = `u/${user}`;
           } else if (n.submission_source === "id") {
             msg.payload = await client.getThing("submission", contentId);
+            attachResponseMeta(msg, client);
             node.status({ fill: "green", shape: "dot", text: contentId });
             node.send(msg);
             return;
@@ -199,6 +198,7 @@ module.exports = function(RED) {
             statusText = contentId;
           } else if (n.comment_source === "id") {
             msg.payload = await client.getThing("comment", contentId);
+            attachResponseMeta(msg, client);
             node.status({ fill: "green", shape: "dot", text: contentId });
             node.send(msg);
             return;
@@ -209,6 +209,7 @@ module.exports = function(RED) {
             statusText = "inbox";
           } else if (n.pm_source === "id") {
             msg.payload = await client.getMessage(contentId);
+            attachResponseMeta(msg, client);
             node.status({ fill: "green", shape: "dot", text: contentId });
             node.send(msg);
             return;
@@ -222,6 +223,7 @@ module.exports = function(RED) {
           throw new Error("Unsupported Get node configuration.");
         }
 
+        attachResponseMeta(msg, client);
         node.status({ fill: "green", shape: "dot", text: statusText || "success" });
         node.send([cloneListAsMessages(items, msg)]);
       } catch (err) {
@@ -253,6 +255,7 @@ module.exports = function(RED) {
 
         node.status({ fill: "blue", shape: "dot", text: n.content_type });
         msg.payload = await client.reply({ kind, id: contentId, text });
+        attachResponseMeta(msg, client);
         node.status({
           fill: "green",
           shape: "dot",
@@ -297,6 +300,7 @@ module.exports = function(RED) {
           limit: parseLimit(n.limit, 25)
         });
 
+        attachResponseMeta(msg, client);
         node.status({
           fill: "green",
           shape: "dot",
@@ -344,6 +348,7 @@ module.exports = function(RED) {
           message: parseField(msg, n.message)
         });
 
+        attachResponseMeta(msg, client);
         const display = msg.payload && (msg.payload.name || msg.payload.id);
         node.status({
           fill: "green",
@@ -397,13 +402,19 @@ module.exports = function(RED) {
           limit: n.kind === "PMs" ? 25 : 100
         });
 
+        const responseMeta = client.lastResponseMeta
+          ? JSON.parse(JSON.stringify(client.lastResponseMeta))
+          : null;
+
         let emitted = 0;
         for (const item of [...items].reverse()) {
           const key = item && (item.fullname || item.id);
           if (key && seen.has(key)) continue;
           remember(key);
 
-          node.send({ payload: item });
+          const outputMsg = { payload: item };
+          attachResponseMeta(outputMsg, client, responseMeta);
+          node.send(outputMsg);
           emitted += 1;
 
           if (n.kind === "PMs" && n.markedAsRead && item && item.fullname) {
@@ -477,6 +488,7 @@ module.exports = function(RED) {
           id: parseField(msg, n.content_id),
           text: parseField(msg, n.edit_content)
         });
+        attachResponseMeta(msg, client);
         node.status({ fill: "green", shape: "dot", text: `${kind} edited` });
         node.send(msg);
       } catch (err) {
@@ -508,6 +520,7 @@ module.exports = function(RED) {
           kind,
           id: parseField(msg, n.content_id)
         });
+        attachResponseMeta(msg, client);
         node.status({ fill: "green", shape: "dot", text: `${kind} deleted` });
         node.send(msg);
       } catch (err) {
@@ -541,6 +554,7 @@ module.exports = function(RED) {
           vote: n.vote,
           save: n.save
         });
+        attachResponseMeta(msg, client);
         node.status({ fill: "green", shape: "dot", text: `${kind} updated` });
         node.send(msg);
       } catch (err) {
