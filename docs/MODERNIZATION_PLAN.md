@@ -31,12 +31,12 @@ Modernize the inherited Node-RED Reddit nodes into a dependable Reddit adapter f
 
 ## Phase 1 — Authentication and client layer
 
-- [ ] Make OAuth refresh-token authentication the primary supported mode.
+- [x] Make OAuth refresh-token authentication the primary supported mode while retaining legacy script-app compatibility.
 - [ ] Deprecate username/password authentication in the editor.
 - [x] Evaluate replacement of deprecated `snoowrap`.
 - [x] Replace `snoowrap`/`snoostorm-es6` completely with the native fetch client.
-- [ ] Ensure credentials never appear in normal Node-RED messages or logs.
-- [ ] Add authentication failure tests.
+- [x] Ensure credentials never appear in normal Node-RED messages or logs.
+- [x] Add authentication failure tests.
 
 ## Phase 2 — Reader-request ingestion
 
